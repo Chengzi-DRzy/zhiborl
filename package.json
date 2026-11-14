@@ -1,0 +1,1 @@
+{"scripts":{"dev":"vite --host 0.0.0.0 --port 61004 --strictPort","build":"vite build"},"dependencies":{"vite":"latest"},"devDependencies":{}}
