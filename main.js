@@ -1,5 +1,4 @@
 import { bootstrapComateManifest, ensureAuthorized, request } from './.capabilities/wps/core/dist/index.js';
-import './index.html';
 const FILE_ID='r8T2ifj8N1MRx9gPKdHmxx7Nv8C3NhNvY';
 bootstrapComateManifest({schema:'comate/v2',scopes:['kso.dbsheet.readwrite'],capabilities:{}});
 const text=v=>Array.isArray(v)?v.map(x=>typeof x==='object'?(x.text||x.value||x.name||''):x).join('、'):typeof v==='object'?(v?.text||v?.value||v?.name||''):String(v??'');
