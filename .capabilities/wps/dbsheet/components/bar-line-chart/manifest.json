@@ -1,0 +1,83 @@
+{
+  "id": "bar-line-chart",
+  "name": "柱线图",
+  "description": "用左右双坐标轴组合展示多维表柱状值与折线值",
+  "propsSchema": {
+    "type": "object",
+    "properties": {
+      "fileId": {
+        "type": "string",
+        "title": "多维表文件 ID",
+        "description": "kdocs 文件 ID 或链接中的 fileId"
+      },
+      "tableId": {
+        "type": "string",
+        "title": "数据表",
+        "x-resource": "list-tables",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" }
+        }
+      },
+      "dimension": {
+        "type": "string",
+        "title": "维度（横轴）",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "primaryStatisticFieldId": {
+        "type": "string",
+        "title": "统计值（左坐标轴/柱）",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "secondaryStatisticFieldId": {
+        "type": "string",
+        "title": "统计值（右坐标轴/线）",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "sortBy": {
+        "type": "string",
+        "title": "排序依据",
+        "enum": ["x", "y"],
+        "enumNames": ["横轴", "左坐标轴"],
+        "default": "x"
+      },
+      "sortOrder": {
+        "type": "string",
+        "title": "排序方式",
+        "enum": ["asc", "desc"],
+        "enumNames": ["正序", "倒序"],
+        "default": "asc"
+      }
+    },
+    "required": [
+      "fileId",
+      "tableId",
+      "dimension",
+      "primaryStatisticFieldId",
+      "secondaryStatisticFieldId"
+    ]
+  },
+  "x-customization": {
+    "overrideable": ["components/bar-line-chart/render.js"],
+    "prefer_props": [
+      "fileId",
+      "tableId",
+      "dimension",
+      "primaryStatisticFieldId",
+      "secondaryStatisticFieldId",
+      "sortBy",
+      "sortOrder"
+    ]
+  }
+}

@@ -1,7 +1,29 @@
 {
-  "version": "1",
-  "meta": {
-    "projectId": "2731151806737271"
+  "capabilities": {
+    "wps/core": {
+      "integrity": "sha256:c404a23d3dd278ad662b39c9184c9118ecdc4d8294b0f9c9489f6faccdc29abd",
+      "resolved": ".capabilities/wps/core",
+      "version": "1.0.8"
+    },
+    "wps/dbsheet": {
+      "integrity": "sha256:6e164dcf40d89da5d042adfdb9a44401663bcc71659cf6ee31a7c8edad31e7c0",
+      "resolved": ".capabilities/wps/dbsheet",
+      "version": "1.0.5"
+    }
   },
-  "command": {}
+  "meta": {
+    "projectId": "2731151806737271",
+    "framework": "static-html"
+  },
+  "command": {
+    "install": "",
+    "dev": "python -m http.server 61001 --bind 0.0.0.0",
+    "build": "",
+    "zip": "$system-zip frontend:."
+  },
+  "schema": "comate/v2",
+  "scopes": [
+    "kso.dbsheet.readwrite"
+  ],
+  "version": "1"
 }

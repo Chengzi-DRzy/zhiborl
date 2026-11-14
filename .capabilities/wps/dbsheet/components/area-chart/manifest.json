@@ -1,0 +1,90 @@
+{
+  "id": "area-chart",
+  "name": "基础面积图",
+  "description": "按维度统计多维表记录并渲染基础面积图",
+  "propsSchema": {
+    "type": "object",
+    "properties": {
+      "fileId": {
+        "type": "string",
+        "title": "多维表文件 ID",
+        "description": "kdocs 文件 ID 或链接中的 fileId"
+      },
+      "tableId": {
+        "type": "string",
+        "title": "数据表",
+        "x-resource": "list-tables",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" }
+        }
+      },
+      "dimension": {
+        "type": "string",
+        "title": "维度（横轴）",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "statisticMode": {
+        "type": "string",
+        "title": "统计值（纵轴）",
+        "enum": ["count", "field"],
+        "enumNames": ["记录总数", "指定字段"],
+        "default": "count"
+      },
+      "statisticFieldId": {
+        "type": "string",
+        "title": "统计字段",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "seriesDimension": {
+        "type": "string",
+        "title": "分组（图例）",
+        "description": "可选；不选择时显示单个面积系列",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "sortBy": {
+        "type": "string",
+        "title": "排序依据",
+        "enum": ["x", "y"],
+        "enumNames": ["横轴", "纵轴"],
+        "default": "x"
+      },
+      "sortOrder": {
+        "type": "string",
+        "title": "排序方式",
+        "enum": ["asc", "desc"],
+        "enumNames": ["正序", "倒序"],
+        "default": "asc"
+      },
+      "emptyCell": {
+        "type": "string",
+        "title": "空单元格显示为",
+        "enum": ["zero", "gap", "connect"],
+        "enumNames": ["零值", "空距", "用直线连接数据点"],
+        "default": "zero"
+      }
+    },
+    "required": ["fileId", "tableId", "dimension"]
+  },
+  "x-customization": {
+    "overrideable": ["components/area-chart/render.js"],
+    "prefer_props": [
+      "fileId",
+      "tableId",
+      "dimension",
+      "seriesDimension",
+      "emptyCell"
+    ]
+  }
+}

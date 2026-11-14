@@ -1,0 +1,84 @@
+{
+  "id": "stacked-horizontal-bar-chart",
+  "name": "堆积条形图",
+  "description": "按两个维度统计多维表记录并渲染横向堆积条形图",
+  "propsSchema": {
+    "type": "object",
+    "properties": {
+      "fileId": {
+        "type": "string",
+        "title": "多维表文件 ID",
+        "description": "kdocs 文件 ID 或链接中的 fileId"
+      },
+      "tableId": {
+        "type": "string",
+        "title": "数据表",
+        "x-resource": "list-tables",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" }
+        }
+      },
+      "dimension": {
+        "type": "string",
+        "title": "维度（纵轴）",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "statisticMode": {
+        "type": "string",
+        "title": "统计值（横轴）",
+        "enum": ["count", "field"],
+        "enumNames": ["记录总数", "指定字段"],
+        "default": "count"
+      },
+      "statisticFieldId": {
+        "type": "string",
+        "title": "统计字段",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "seriesDimension": {
+        "type": "string",
+        "title": "分组（图例）",
+        "description": "可选；例如资产类别、状态或负责人",
+        "x-resource": "list-fields",
+        "x-resource-params": {
+          "fileId": { "$ref": "fileId" },
+          "tableId": { "$ref": "tableId" }
+        }
+      },
+      "sortBy": {
+        "type": "string",
+        "title": "排序依据",
+        "enum": ["y", "x"],
+        "enumNames": ["横轴", "纵轴"],
+        "default": "y"
+      },
+      "sortOrder": {
+        "type": "string",
+        "title": "排序方式",
+        "enum": ["asc", "desc"],
+        "enumNames": ["正序", "倒序"],
+        "default": "asc"
+      }
+    },
+    "required": ["fileId", "tableId", "dimension"]
+  },
+  "x-customization": {
+    "overrideable": ["components/stacked-horizontal-bar-chart/render.js"],
+    "prefer_props": [
+      "fileId",
+      "tableId",
+      "dimension",
+      "seriesDimension",
+      "sortBy",
+      "sortOrder"
+    ]
+  }
+}

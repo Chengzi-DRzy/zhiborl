@@ -1,0 +1,14 @@
+{
+  "schema": "capability-display/v1",
+  "default_locale": "zh-CN",
+  "localizations": {
+    "en-US": {
+      "name": "WPS Core Runtime",
+      "description": "Authorization, OpenAPI proxying, and component rendering; installed with capability packages and available from the capability center for dependency resolution"
+    },
+    "zh-TW": {
+      "name": "WPS能力執行階段",
+      "description": "提供授權、OpenAPI 代理與元件呈現入口；隨能力套件安裝，能力中心用於解析相依套件"
+    }
+  }
+}

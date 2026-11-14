@@ -1,0 +1,15 @@
+{
+  "agents": {
+    "discover": "./agents/discover.md",
+    "integrate": "./agents/integrate.md"
+  },
+  "components": [],
+  "dependencies": {},
+  "description": "授权、OpenAPI 代理与组件渲染入口；随能力包安装，能力中心用于依赖解析",
+  "entry": "./dist/index.js",
+  "id": "wps/core",
+  "name": "WPS 能力运行时",
+  "schema": "capa.manifest/v1",
+  "scopes": [],
+  "version": "1.0.8"
+}

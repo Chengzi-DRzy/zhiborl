@@ -1,0 +1,32 @@
+{
+  "agents": {
+    "discover": "./agents/discover.md",
+    "integrate": "./agents/integrate.md"
+  },
+  "components": [
+    "bar-chart",
+    "line-chart",
+    "stacked-bar-chart",
+    "stacked-line-chart",
+    "horizontal-bar-chart",
+    "stacked-horizontal-bar-chart",
+    "pie-chart",
+    "donut-chart",
+    "area-chart",
+    "stacked-area-chart",
+    "percentage-stacked-area-chart",
+    "bar-line-chart"
+  ],
+  "dependencies": {
+    "wps/core": "latest"
+  },
+  "description": "读取和管理 WPS 365 多维表记录、数据表、字段、视图与表单，并提供基于多维表数据的图表组件",
+  "entry": "./dist/index.js",
+  "id": "wps/dbsheet",
+  "name": "WPS 多维表格",
+  "schema": "capa.manifest/v1",
+  "scopes": [
+    "kso.dbsheet.readwrite"
+  ],
+  "version": "1.0.5"
+}

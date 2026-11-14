@@ -1,0 +1,15 @@
+{
+  "schema": "capability-display/v1",
+  "default_locale": "zh-CN",
+  "localizations": {
+    "en-US": {
+      "name": "WPS Multidimensional Tables",
+      "description": "Read and manage WPS 365 multidimensional table records, tables, fields, views, and forms, with chart components for visualizing table data"
+    },
+    "zh-TW": {
+      "name": "WPS多維表格",
+      "description": "讀取與管理 WPS 365 多維表記錄、資料表、欄位、檢視與表單，並提供以多維表資料為基礎的圖表元件"
+    }
+  },
+  "icon": "assets/icon.svg"
+}

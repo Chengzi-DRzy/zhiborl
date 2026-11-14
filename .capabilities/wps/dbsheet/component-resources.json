@@ -1,0 +1,16 @@
+{
+  "list-tables": {
+    "url": "/v7/coop/dbsheet/{{params.fileId}}/schema",
+    "method": "GET",
+    "responsePath": "data.sheets",
+    "map": { "value": "id", "label": "name" }
+  },
+  "list-fields": {
+    "url": "/v7/coop/dbsheet/{{params.fileId}}/schema",
+    "method": "GET",
+    "responsePath": "data.sheets",
+    "find": { "id": "{{params.tableId}}" },
+    "nestedIn": "fields",
+    "map": { "value": "id", "label": "name" }
+  }
+}
