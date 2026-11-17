@@ -1,0 +1,10 @@
+import {spawnSync} from 'node:child_process';
+import {writeFileSync} from 'node:fs';
+const result=spawnSync('wps365-kdocs-cli',['dbsheet','records-list','--file-id','r8T2ifj8N1MRx9gPKdHmxx7Nv8C3NhNvY','--sheet-id','61','--page-size','100','--text-value','text'],{encoding:'utf8',maxBuffer:10*1024*1024});
+if(result.status!==0) throw Error(`读取失败：${result.stderr}`);
+const payload=JSON.parse(result.stdout);
+if(!Array.isArray(payload.records)||payload.page_token) throw Error('记录不完整，停止更新');
+const days=payload.records.map(r=>{const f=JSON.parse(r.fields),match=String(f['日期']||'').match(/^2026\/11\/(\d{2})/);if(!match)return null;const slots=['早','午','晚'].flatMap((label,i)=>{const names=String(f[`抖音主号-${label}`]||'').split(/[,，、]/).map(x=>x.trim()).filter(Boolean);return names.length?[{slot:['早场','中午场','晚场'][i],host:names[0],assist:names.slice(1).join('、')}]:[]});return {date:`2026-11-${match[1]}`,new:String(f['抖音上新']||'').trim(),event:String(f['抖音活动']||'').trim(),slots}}).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
+if(days.length!==30||new Set(days.map(x=>x.date)).size!==30)throw Error(`11月日期不完整或重复：${days.length}`);
+writeFileSync('november-2026.json',JSON.stringify(days,null,2)+'\n');
+console.log(`已整理 ${days.length} 天、${days.reduce((n,d)=>n+d.slots.length,0)} 场；新品 ${days.filter(d=>d.new).length} 天，活动 ${days.filter(d=>d.event).length} 天`);

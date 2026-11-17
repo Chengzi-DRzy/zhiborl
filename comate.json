@@ -13,10 +13,10 @@
   },
   "meta": {
     "projectId": "2731151806737271",
-    "framework": "static-html"
+    "framework": "html"
   },
   "command": {
-    "install": "",
+    "install": "npm install",
     "dev": "npm run dev",
     "build": "npm run build",
     "zip": "$system-zip frontend:./dist"
