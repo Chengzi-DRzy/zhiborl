@@ -1,0 +1,16 @@
+{
+  "name": "purchase_orders",
+  "columns": [
+    {"name":"order_month","type":"text","length":7,"required":true},
+    {"name":"product_record_id","type":"text","required":true},
+    {"name":"product_name","type":"text","length":512,"required":true},
+    {"name":"product_code","type":"text","required":true},
+    {"name":"unit_price_cents","type":"number","required":true},
+    {"name":"quantity","type":"number","required":true},
+    {"name":"order_total_cents","type":"number","required":true},
+    {"name":"recipient_name","type":"text","required":true},
+    {"name":"recipient_phone","type":"text","required":true},
+    {"name":"recipient_address","type":"text","length":2000,"required":true}
+  ],
+  "meta":{"project_id":"2731151806737271","version":1}
+}
