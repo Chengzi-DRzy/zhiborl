@@ -1,19 +1,366 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>直播日历｜2026</title>
-<style>
-:root{--ink:#242336;--muted:#858399;--line:#eceaf4;--purple:#6d5dfc;--lav:#f5f3ff;--pink:#ff7b9c;--bg:#fbfbfe}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}.app{max-width:1180px;margin:auto;padding:28px 24px 48px}.hero{display:flex;align-items:end;justify-content:space-between;margin-bottom:24px}.eyebrow{color:var(--purple);font-weight:700;letter-spacing:2px;font-size:12px}.hero h1{font-size:32px;margin:6px 0 0}.hero p{color:var(--muted);margin:6px 0 0}.tabs{display:flex;gap:8px;background:#fff;border:1px solid var(--line);padding:5px;border-radius:14px}.tabs button{border:0;background:transparent;padding:10px 20px;border-radius:10px;color:var(--muted);cursor:pointer;font-weight:700}.tabs button.active{background:var(--purple);color:#fff}.toolbar{display:flex;align-items:center;gap:12px;margin:18px 0}.toolbar button,.select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;cursor:pointer;color:var(--ink)}.month{font-size:20px;font-weight:800;min-width:140px}.grid{display:grid;grid-template-columns:repeat(7,1fr);background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}.dow{padding:13px;text-align:center;color:var(--muted);font-weight:700;background:#faf9ff;border-bottom:1px solid var(--line)}.day{min-height:126px;padding:10px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);cursor:pointer}.day:nth-child(7n){border-right:0}.day.muted{background:#fcfcfe;color:#c9c7d4}.num{font-weight:800;margin-bottom:8px}.today .num{background:var(--purple);color:white;border-radius:50%;width:25px;height:25px;display:grid;place-items:center}.pill{font-size:12px;border-radius:7px;padding:4px 7px;margin:4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.new{background:#fff1f5;color:#d84770}.event{background:#fff5df;color:#a66a00}.live{background:#eef0ff;color:#5544d4}.week{display:grid;grid-template-columns:repeat(5,minmax(210px,1fr));gap:16px;align-items:stretch;overflow-x:auto;padding:2px 2px 18px}.week-card{background:#fff;border:1px solid #e5e3ea;border-radius:10px;padding:20px 16px;min-height:450px;box-shadow:0 1px 3px rgba(35,30,60,.04)}.week-card:first-child{border-color:#00a99d}.date-title{display:block;margin-bottom:24px}.date-title strong{font-size:14px;color:#20212a}.badge{display:none}.day-info{margin:0 0 22px}.info-label{font-size:13px;color:#6b6b75;margin-bottom:7px}.info-value{font-size:13px;line-height:1.65;color:#2d2d38}.slot{display:block;border:0;padding:0;margin:0 0 22px}.slot:first-of-type{border-top:0}.time{font-weight:500;color:#6b6b75;font-size:13px;margin-bottom:6px}.time:before{content:'☷';font-size:15px;margin-right:7px;color:#777}.people{color:#514b70;text-align:left;font-size:12px;line-height:1.8}.people br{display:block}.people span{display:block}.empty{color:#b1afb9;padding:28px 0;text-align:left;font-size:13px}.legend{display:flex;gap:18px;color:var(--muted);margin:16px 0}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}.notice{margin-top:20px;color:var(--muted);font-size:12px}.hide{display:none}@media(max-width:700px){.app{padding:20px 12px}.hero{display:block}.tabs{margin-top:16px}.day{min-height:100px;padding:7px}.pill{font-size:10px}.week{grid-template-columns:repeat(2,minmax(210px,1fr));gap:10px}.week-card{min-height:360px;padding:16px 13px}.hero h1{font-size:25px}}
-</style></head>
-<body><main class="app"><header class="hero"><div><div class="eyebrow">LIVE SCHEDULE</div><h1>直播日历</h1><p>每天都有好内容，来看看本周和本月的直播安排</p></div><nav class="tabs"><button class="active" data-tab="month">月历</button><button data-tab="week">周历</button></nav></header><section id="monthView"><div class="toolbar"><button id="prev">‹</button><div class="month" id="monthTitle"></div><button id="next">›</button><button id="today">回到今天</button></div><div class="legend"><span><i class="dot" style="background:#ff7b9c"></i>新品上新</span><span><i class="dot" style="background:#e6a52f"></i>平台活动</span><span><i class="dot" style="background:#6d5dfc"></i>直播场次</span></div><div class="grid" id="calendar"></div></section><section id="weekView" class="hide"><div class="toolbar"><button id="weekPrev">‹</button><div class="month" id="weekTitle"></div><button id="weekNext">›</button><button id="weekToday">本周</button></div><div class="week" id="weekList"></div></section><div class="notice">信息来自直播排班表 · 以最新排班为准</div></main>
-<script type="module">
-import days from './november-2026.json';
-const schedule=days.map(d=>({...d,slots:d.slots||[]}));
-let cursor=new Date('2026-11-01'), weekCursor=new Date('2026-11-16');
-document.querySelector('.notice').textContent='已读取2026年11月排班表 · 排班如有调整，以最新公布信息为准';
-const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,zh=['日','一','二','三','四','五','六'];const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function renderMonth(){let y=cursor.getFullYear(),m=cursor.getMonth();monthTitle.textContent=`${y}年${m+1}月`;let first=new Date(y,m,1),start=first.getDay(),days=new Date(y,m+1,0).getDate();calendar.innerHTML=zh.map(x=>`<div class="dow">周${x}</div>`).join('');for(let i=0;i<start;i++)calendar.innerHTML+=`<div class="day muted"></div>`;for(let d=1;d<=days;d++){let date=fmt(new Date(y,m,d)), rows=schedule.filter(x=>x.date===date), cls=date==='2026-11-14'?'today':'';calendar.innerHTML+=`<div class="day ${cls}"><div class="num">${d}</div>${rows.some(x=>x.new)?`<div class="pill new">新品：${safe(rows[0].new)}</div>`:''}${rows.some(x=>x.event)?`<div class="pill event">活动：${safe(rows[0].event)}</div>`:''}${rows[0]?.slots.length?`<div class="pill live">${rows[0].slots.length}场直播</div>`:''}</div>`}}
-function monday(d){let x=new Date(d), n=x.getDay()||7;x.setDate(x.getDate()-n+1);return x}function renderWeek(){let s=monday(weekCursor);weekTitle.textContent=`${fmt(s).replaceAll('-','/')} — ${fmt(new Date(s.getTime()+6*864e5)).slice(5).replace('-','/')}`;weekList.innerHTML='';for(let i=0;i<7;i++){let d=new Date(s.getTime()+i*864e5), date=fmt(d), rows=schedule.filter(x=>x.date===date), products=[...new Set(rows.filter(x=>x.new).map(x=>x.new))], events=[...new Set(rows.filter(x=>x.event).map(x=>x.event))];weekList.innerHTML+=`<article class="week-card"><div class="date-title"><strong>${date.slice(5).replace('-','月')+'日'} 周${zh[d.getDay()]}</strong></div>${products.length?`<div class="day-info"><div class="info-label">▧ 抖音上新</div><div class="info-value">${safe(products.join('、'))}</div></div>`:''}${events.length?`<div class="day-info"><div class="info-label">▧ 抖音活动</div><div class="info-value">${safe(events.join('、'))}</div></div>`:''}${rows[0]?.slots.length?rows[0].slots.map(x=>`<div class="slot"><div class="time">${safe(x.slot)}</div><div class="people"><span>主播：${safe(x.host)}</span><br><span>助播：${safe(x.assist)}</span></div></div>`).join(''):`<div class="empty">今天没有排班，期待下次见</div>`}</article>`}}
-prev.onclick=()=>{cursor.setMonth(cursor.getMonth()-1);renderMonth()};next.onclick=()=>{cursor.setMonth(cursor.getMonth()+1);renderMonth()};today.onclick=()=>{cursor=new Date('2026-11-01');renderMonth()};weekPrev.onclick=()=>{weekCursor.setDate(weekCursor.getDate()-7);renderWeek()};weekNext.onclick=()=>{weekCursor.setDate(weekCursor.getDate()+7);renderWeek()};weekToday.onclick=()=>{weekCursor=new Date('2026-11-16');renderWeek()};document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');monthView.classList.toggle('hide',b.dataset.tab!=='month');weekView.classList.toggle('hide',b.dataset.tab!=='week');if(b.dataset.tab==='week')renderWeek()});renderMonth();
-</script></body></html>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>直播日历｜2026</title><style>
+    :root {
+      --canvas: #F2F2F0;
+      --canvas-2: #E8E8E5;
+      --ink: #18181B;
+      --ink-2: #18181B; /* zinc-900 */
+      --muted: #57575A;
+      --hairline: rgba(10,10,10,0.08);
+      --hairline-strong: rgba(10,10,10,0.12);
+      --innerlight: rgba(255,255,255,0.65);
+      --accent: #1F4D3F;       /* deep sage */
+      --accent-glow: #5A8C7A;
+      --sans: 'Plus Jakarta Sans', 'Geist', 'Cabinet Grotesk', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace;
+      --ease: cubic-bezier(0.32, 0.72, 0, 1);
+      --ease-spring: cubic-bezier(0.16, 1.16, 0.3, 1);
+      --shell-radius: 2.25rem;
+      --core-radius: calc(2.25rem - 0.4rem);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.5;
+      letter-spacing: -0.005em;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+    /* ============ AMBIENT MESH (fixed, pointer-events-none) ============ */
+    .mesh {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .mesh::before, .mesh::after {
+      content: ''; position: absolute; border-radius: 50%; filter: blur(90px);
+      opacity: 0.18; will-change: transform;
+    }
+    .mesh::before {
+      width: 720px; height: 720px;
+      background: radial-gradient(circle at 30% 30%, var(--accent-glow), transparent 60%);
+      top: -180px; left: -160px;
+      animation: drift1 28s var(--ease) infinite alternate;
+    }
+    .mesh::after {
+      width: 560px; height: 560px;
+      background: radial-gradient(circle at 60% 60%, #C9B79A, transparent 60%);
+      top: 120px; right: -140px;
+      animation: drift2 36s var(--ease) infinite alternate;
+    }
+    @keyframes drift1 { from { transform: translate3d(0,0,0); } to { transform: translate3d(80px, 60px, 0); } }
+    @keyframes drift2 { from { transform: translate3d(0,0,0); } to { transform: translate3d(-60px, 40px, 0); } }
+    @media (prefers-reduced-motion: reduce) { .mesh::before, .mesh::after { animation: none; } }
+
+    main, header, footer { position: relative; z-index: 1; }
+
+    /* ============ FLOATING PILL NAV ============ */
+    .nav-shell {
+      position: sticky; top: 24px; z-index: 50;
+      margin: 24px auto 0;
+      padding: 6px;
+      width: max-content; max-width: calc(100% - 56px);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.42);
+      backdrop-filter: saturate(160%) blur(22px);
+      -webkit-backdrop-filter: saturate(160%) blur(22px);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.45) inset,
+        0 0 0 1px rgba(10,10,10,0.05),
+        0 12px 36px -18px rgba(10,10,10,0.18);
+    }
+    .nav {
+      display: flex; align-items: center; gap: 18px;
+      padding: 6px 8px 6px 18px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .nav .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; display: inline-flex; align-items: center; gap: 8px; }
+    .nav .brand-mark {
+      width: 22px; height: 22px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-glow) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 2px rgba(10,10,10,0.18);
+    }
+    .nav ul { list-style: none; display: flex; gap: 6px; margin: 0; padding: 0; }
+    .nav ul a {
+      display: inline-block; padding: 9px 14px; border-radius: 999px;
+      color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 500;
+      transition: background 300ms var(--ease);
+    }
+    .nav ul a:hover { background: rgba(10,10,10,0.05); }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 7px 7px 16px;
+      border-radius: 999px;
+      background: var(--ink); color: var(--canvas);
+      font: 600 13px/1 var(--sans); cursor: pointer; border: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+      transition: transform 300ms var(--ease);
+    }
+    .pill .icon-wrap {
+      width: 26px; height: 26px; border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: transform 360ms var(--ease-spring), background 300ms var(--ease);
+    }
+    .pill:hover .icon-wrap { transform: translate(2px, -1px) scale(1.06); background: rgba(255,255,255,0.22); }
+    .pill:active { transform: scale(0.98); }
+    .pill svg { width: 12px; height: 12px; stroke: currentColor; fill: none; }
+
+    /* ============ HERO ============ */
+    .hero {
+      min-height: 100dvh;
+      padding: 96px 0 120px;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 999px;
+      background: rgba(255,255,255,0.6);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .eyebrow .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 4px rgba(31,77,63,0.18); }
+    .hero h1 {
+      font-size: clamp(48px, 7vw, 92px);
+      font-weight: 700;
+      line-height: 0.96;
+      letter-spacing: -0.038em;
+      margin: 22px 0 28px;
+      max-width: 14ch;
+    }
+    .hero h1 .soft { color: var(--muted); font-weight: 500; }
+    .hero p.lede {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 52ch;
+      margin: 0 0 34px;
+      line-height: 1.55;
+    }
+    .hero .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 18px; border-radius: 999px;
+      background: rgba(255,255,255,0.5);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
+      font: 500 13.5px/1 var(--sans); color: var(--ink); cursor: pointer; border: none;
+      transition: background 300ms var(--ease), transform 300ms var(--ease);
+    }
+    .ghost:hover { background: rgba(255,255,255,0.85); }
+    .ghost:active { transform: scale(0.98); }
+
+    /* ============ HERO PREVIEW (DOUBLE-BEZEL CARD) ============ */
+    .hero-preview {
+      position: relative;
+      padding: 10px;
+      border-radius: var(--shell-radius);
+      background: rgba(255,255,255,0.45);
+      box-shadow:
+        inset 0 1px 0 var(--innerlight),
+        0 0 0 1px var(--hairline),
+        0 30px 60px -28px rgba(10,10,10,0.22),
+        0 12px 24px -16px rgba(10,10,10,0.10);
+    }
+    .hero-preview .core {
+      position: relative;
+      border-radius: var(--core-radius);
+      background: linear-gradient(180deg, #FAFAF7 0%, #EFEFEB 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 0 0 1px var(--hairline);
+      padding: 22px;
+      overflow: hidden;
+    }
+    .preview-bar {
+      display: flex; gap: 6px; margin-bottom: 18px;
+    }
+    .preview-bar span { width: 10px; height: 10px; border-radius: 999px; background: rgba(10,10,10,0.10); }
+    .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pv-cell {
+      border-radius: 16px;
+      background: rgba(255,255,255,0.8);
+      box-shadow: inset 0 0 0 1px var(--hairline), inset 0 1px 0 rgba(255,255,255,0.8);
+      padding: 14px;
+    }
+    .pv-cell.span2 { grid-column: span 2; }
+    .pv-cell h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: -0.01em; }
+    .pv-cell p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+    .pv-cell .meta { font-family: var(--mono); font-size: 9.5px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+    .pv-cell .num { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; margin-top: 4px; }
+    .pv-cell .num small { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 500; }
+    .ring {
+      width: 38px; height: 38px; border-radius: 999px;
+      background: conic-gradient(var(--accent) 0 67%, rgba(10,10,10,0.08) 67% 100%);
+      mask: radial-gradient(circle 14px, transparent 12px, black 13px);
+      -webkit-mask: radial-gradient(circle 14px, transparent 12px, black 13px);
+      margin-top: 6px;
+    }
+    .pv-cell .row { display: flex; align-items: center; gap: 10px; }
+    .pulse {
+      width: 8px; height: 8px; border-radius: 999px; background: var(--accent);
+      box-shadow: 0 0 0 0 rgba(31,77,63,0.4);
+      animation: pulse 2.4s var(--ease) infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(31,77,63,0.4); }
+      70%  { box-shadow: 0 0 0 10px rgba(31,77,63,0); }
+      100% { box-shadow: 0 0 0 0 rgba(31,77,63,0); }
+    }
+
+    /* ============ SECTION DEFAULTS ============ */
+    section.block { padding: 112px 0; position: relative; }
+    .section-head { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: end; margin-bottom: 56px; }
+    .section-head h2 {
+      font-size: clamp(38px, 5vw, 64px);
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      line-height: 1;
+      margin: 16px 0 0;
+      max-width: 14ch;
+    }
+    .section-head p { color: var(--muted); font-size: 16.5px; max-width: 46ch; margin: 0; line-height: 1.55; }
+
+    /* ============ BENTO (double-bezel cards) ============ */
+    .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+    .b-card {
+      padding: 8px;
+      border-radius: var(--shell-radius);
+      background: rgba(255,255,255,0.5);
+      box-shadow:
+        inset 0 1px 0 var(--innerlight),
+        0 0 0 1px var(--hairline),
+        0 24px 48px -28px rgba(10,10,10,0.18);
+      transition: transform 600ms var(--ease), box-shadow 600ms var(--ease);
+    }
+    .b-card:hover {
+      transform: translateY(-3px);
+      box-shadow:
+        inset 0 1px 0 var(--innerlight),
+        0 0 0 1px var(--hairline),
+        0 30px 70px -22px rgba(10,10,10,0.22);
+    }
+    .b-card .core {
+      border-radius: var(--core-radius);
+      background: #FCFCFA;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 0 0 1px var(--hairline);
+      padding: 32px;
+      height: 100%;
+      display: flex; flex-direction: column;
+    }
+    .b-card.dark .core {
+      background: linear-gradient(180deg, #1A1A1A 0%, #0F0F0F 100%);
+      color: #ECECEA;
+    }
+    .b-card.dark .core .meta { color: rgba(255,255,255,0.55); }
+    .b-card.dark .core p { color: rgba(255,255,255,0.6); }
+    .b-card .meta { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    .b-card h3 { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; margin: 0 0 10px; }
+    .b-card.dark h3 { color: #FFFFFF; }
+    .b-card p { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.55; max-width: 36ch; }
+
+    .span-3 { grid-column: span 3; }
+    .span-2 { grid-column: span 2; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .row-2 { grid-row: span 2; }
+
+    .stat { display: flex; align-items: baseline; gap: 8px; margin-top: 24px; }
+    .stat .big { font-size: 56px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+    .stat .unit { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+
+    .codeblock {
+      margin-top: auto; padding: 18px;
+      border-radius: 18px;
+      background: #0E0E0E; color: #ECECEA;
+      font-family: var(--mono); font-size: 12px; line-height: 1.65;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+      overflow: hidden;
+    }
+    .codeblock .k { color: #5A8C7A; }
+    .codeblock .s { color: #C9B79A; }
+    .codeblock .c { color: rgba(236,236,234,0.4); }
+
+    /* ============ MARQUEE ============ */
+    .marquee {
+      padding: 56px 0;
+      overflow: hidden;
+      mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+      -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+    }
+    .marquee-track {
+      display: flex; gap: 64px; width: max-content;
+      animation: track 32s linear infinite;
+      will-change: transform;
+    }
+    .marquee:hover .marquee-track { animation-play-state: paused; }
+    @keyframes track { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-item {
+      font-weight: 700; font-size: 22px; letter-spacing: -0.02em; color: var(--ink);
+      opacity: 0.55;
+      white-space: nowrap;
+    }
+    .marquee-item em { font-style: normal; color: var(--muted); margin: 0 12px; }
+
+    /* ============ CLOSING (inverted soft surface) ============ */
+    .closing {
+      padding: 112px 0;
+      margin: 56px 28px 28px;
+      border-radius: 40px;
+      background: linear-gradient(180deg, #131313 0%, #050505 100%);
+      color: #F2F2F0;
+      position: relative; overflow: hidden;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 30px 80px -40px rgba(10,10,10,0.6);
+    }
+    .closing::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(700px 360px at 30% 0%, rgba(90,140,122,0.32), transparent 70%);
+      pointer-events: none;
+    }
+    .closing-inner { position: relative; max-width: 1040px; padding: 0 32px; margin: 0 auto; text-align: center; }
+    .closing h2 { font-size: clamp(40px, 5.5vw, 76px); font-weight: 700; letter-spacing: -0.035em; line-height: 1; margin: 0 0 18px; max-width: 18ch; margin-inline: auto; }
+    .closing p { color: rgba(242,242,240,0.65); font-size: 17px; margin: 0 auto 32px; max-width: 48ch; line-height: 1.55; }
+    .closing .pill { background: var(--canvas); color: var(--ink); }
+    .closing .pill .icon-wrap { background: rgba(10,10,10,0.08); }
+
+    /* ============ FOOTER ============ */
+    footer {
+      padding: 36px 28px 28px;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+    footer .row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--ink); }
+
+    /* ============ RESPONSIVE COLLAPSE ============ */
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; padding-top: 64px; padding-bottom: 80px; }
+      .nav ul { display: none; }
+      .section-head { grid-template-columns: 1fr; gap: 18px; }
+      .bento { grid-template-columns: 1fr; }
+      .span-3, .span-2, .span-4, .span-6 { grid-column: span 1; }
+      .row-2 { grid-row: auto; }
+      .closing { margin: 28px 16px; padding: 80px 0; }
+    }
+
+    /* ============ MOTION ENTRY ============ */
+    .reveal { opacity: 0; transform: translateY(18px); filter: blur(6px); transition: opacity 800ms var(--ease), transform 800ms var(--ease), filter 800ms var(--ease); }
+    .reveal.is-in { opacity: 1; transform: none; filter: none; }
+    @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; filter: none; transition: none; } }
+/* Calendar atoms use the template's nested shell/core geometry. */
+button{font-family:inherit} .nav button{white-space:nowrap}.nav ul button{border:0;background:none;padding:9px 14px;border-radius:999px;color:var(--ink);font-size:13px;cursor:pointer}.nav ul button.active{background:var(--accent);color:white}.nav .brand{white-space:nowrap}.calendar-section{padding-top:112px}.calendar-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}.calendar-tools h3{margin:0 auto 0 0;font-size:24px;letter-spacing:-.025em}.calendar-tools .ghost{padding:12px 18px}.calendar-shell{padding:8px;border-radius:var(--shell-radius);background:rgba(255,255,255,.5);box-shadow:inset 0 1px 0 var(--innerlight),0 0 0 1px var(--hairline),0 24px 48px -28px rgba(10,10,10,.18)}.calendar-core{border-radius:var(--core-radius);background:#FCFCFA;box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 1px var(--hairline);padding:24px;overflow:hidden}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:9px}.dow{text-align:center;padding:12px 0;font:10px var(--mono);letter-spacing:.15em;color:var(--muted)}.day{min-height:128px;padding:12px;border-radius:16px;background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px var(--hairline),inset 0 1px 0 rgba(255,255,255,.8)}.day.muted{background:rgba(10,10,10,.025);box-shadow:none}.day .num{font-weight:700;font-size:20px;line-height:1;margin-bottom:12px}.day .chip{display:block;margin:5px 0;padding:5px 7px;border-radius:9px;background:#e9eee9;color:var(--accent);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.day .chip.event{background:#f3eee5;color:#6f5738}.day .chip.live{background:#f1f1ee;color:var(--muted)}.legend{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 20px;font:11px var(--mono);letter-spacing:.05em;color:var(--muted)}.week-grid{display:grid;grid-template-columns:repeat(7,minmax(210px,1fr));gap:14px;overflow-x:auto;padding:4px 2px 24px}.week-card .core{min-height:370px;padding:22px}.week-card h3{font-size:20px}.week-card .day-info{margin:18px 0}.week-card .day-info .meta{margin-bottom:6px}.week-card .day-info p{overflow-wrap:anywhere;color:var(--ink)}.slot{padding:13px 0;border-top:1px solid var(--hairline);font-size:12px}.slot b{display:block;color:var(--accent);margin-bottom:5px}.slot span{display:block;color:var(--muted);line-height:1.7}.empty{color:var(--muted);font-size:13px}.hide{display:none!important}.marquee-item{font-size:16px}.hero-preview .preview-grid .pv-cell p{overflow-wrap:anywhere}.closing .pill{margin:auto}button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:980px){.calendar-section{padding-top:64px}.week-grid{grid-template-columns:repeat(2,minmax(210px,1fr))}}@media(max-width:767px){.wrap{padding:0 18px}.nav-shell{max-width:calc(100% - 24px)}.nav{gap:9px;padding:6px 8px}.nav .brand{font-size:13px}.nav ul{display:flex;gap:0}.nav ul button{padding:8px;font-size:12px}.nav>.pill{display:none}.hero{min-height:auto;padding:90px 0 72px}.hero h1{font-size:clamp(48px,12vw,72px)}.calendar-core{padding:12px}.calendar-grid{gap:3px}.dow{font-size:9px}.day{min-height:80px;padding:5px;border-radius:9px}.day .num{font-size:13px;margin-bottom:8px}.day .chip{font-size:9px;padding:3px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.week-grid{grid-template-columns:1fr}.week-card .core{min-height:0}.calendar-tools h3{width:100%}.calendar-tools{gap:6px}.calendar-tools .ghost{padding:10px 13px}.closing{border-radius:32px}}
+</style></head><body>
+<div class="mesh" aria-hidden="true"></div><div class="nav-shell"><header class="nav"><span class="brand"><span class="brand-mark"></span>直播日历</span><ul aria-label="日历视图"><li><button data-tab="month" class="active">月历</button></li><li><button data-tab="week">周历</button></li></ul><button class="pill" id="navWeek"><span>查看本周</span><span class="icon-wrap">↗</span></button></header></div>
+<main><section class="wrap hero reveal"><div class="hero-copy"><span class="eyebrow"><span class="dot"></span>LIVE SCHEDULE · 2026</span><h1>每一天，<span class="soft">都有好内容。</span></h1><p class="lede">查看十一月新品与平台活动，提前找到喜欢的主播和直播场次。无需登录，轻松安排你的观看时间。</p><div class="actions"><button class="pill" id="heroMonth"><span>查看月历</span><span class="icon-wrap">↗</span></button><button class="ghost" id="heroWeek">查看周历</button></div></div><aside class="hero-preview"><div class="core"><div class="preview-bar"><span></span><span></span><span></span></div><div class="preview-grid"><div class="pv-cell span2"><div class="meta">NOVEMBER · SCHEDULE</div><div class="row" style="justify-content:space-between"><div><h4>2026 年 11 月</h4><div class="row"><span class="pulse"></span><p>直播排班已更新</p></div></div><div class="ring" aria-hidden="true"></div></div></div><div class="pv-cell"><div class="meta">LIVE SESSIONS</div><div class="num" id="heroSlots">—<small>场</small></div></div><div class="pv-cell"><div class="meta">NEW ARRIVALS</div><div class="num" id="heroNew">—<small>天</small></div></div><div class="pv-cell span2"><div class="meta">UP NEXT</div><h4 id="heroNext">查看十一月排班</h4><p>按月浏览上新与活动，按周查看主播及助播。</p></div></div></div></aside></section>
+<section class="block reveal calendar-section" id="schedule"><div class="wrap"><div class="section-head"><span class="eyebrow"><span class="dot"></span>01 · CALENDAR</span><p>月历速览每日内容，周历查看场次与人员。仅展示面向观众的排班信息。</p></div><div class="section-head"><h2>好内容，<em style="font-weight:500;color:var(--muted);font-style:normal">如期而至。</em></h2><span></span></div><div id="monthView"><div class="calendar-tools"><h3 id="monthTitle"></h3><button class="ghost" id="prev" aria-label="上个月">←</button><button class="ghost" id="next" aria-label="下个月">→</button><button class="ghost" id="today">回到十一月</button></div><div class="legend"><span>● 新品上新</span><span>● 平台活动</span><span>● 直播场次</span></div><div class="calendar-shell"><div class="calendar-core"><div class="calendar-grid" id="calendar"></div></div></div></div><div id="weekView" class="hide"><div class="calendar-tools"><h3 id="weekTitle"></h3><button class="ghost" id="weekPrev" aria-label="上一周">←</button><button class="ghost" id="weekNext" aria-label="下一周">→</button><button class="ghost" id="weekToday">本周</button></div><div class="week-grid" id="weekList"></div></div></div></section>
+<section class="marquee reveal" aria-label="直播内容"><div class="marquee-track"><span class="marquee-item">新品上新<em>·</em>平台活动<em>·</em>早场直播<em>·</em>中午场直播<em>·</em>晚场直播<em>·</em></span><span class="marquee-item" aria-hidden="true">新品上新<em>·</em>平台活动<em>·</em>早场直播<em>·</em>中午场直播<em>·</em>晚场直播<em>·</em></span></div></section><section class="closing reveal"><div class="closing-inner"><span class="eyebrow"><span class="dot"></span>STAY IN THE LOOP</span><h2>下一场精彩，提前知道。</h2><p>十一月的直播安排已经备好。排班可能调整，请以最新公布的信息为准。</p><button class="pill" id="closingWeek"><span>查看本周排班</span><span class="icon-wrap">↗</span></button></div></section></main><footer><div class="row"><span>LIVE SCHEDULE · 2026</span><span>2026 年 11 月排班 · 以最新公布信息为准</span></div></footer><script type="module" src="/calendar.js"></script></body></html>

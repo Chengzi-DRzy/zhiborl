@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "od-template-package/v1",
+  "id": "web-prototype-taste-soft",
+  "type": "bone",
+  "name": "苹果柔光原型",
+  "version": "1.0.0",
+  "mode": "web",
+  "platform": "responsive",
+  "entry": {
+    "skill": "SKILL.md"
+  },
+  "resources": {
+    "example": "example.html"
+  },
+  "source": {
+    "type": "builtin"
+  },
+  "description": "银/奶油画布 + 双层边框卡片 + 弹性动画 + 环境网格",
+  "category": "web",
+  "tags": [
+    "苹果",
+    "柔光",
+    "圆角"
+  ],
+  "colors": [
+    "#5A8C7A",
+    "#C9B79A",
+    "#1F4D3F"
+  ]
+}
