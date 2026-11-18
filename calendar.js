@@ -40,7 +40,7 @@ function renderMonth() {
     Array.from({length:count}, (_,i) => {
       const n = i+1, date = fmt(new Date(year,m,n)), d = byDate.get(date);
       const description = [d?.new && '新品上新',d?.event && '平台活动',d?.slots?.length && `${d.slots.length} 场直播`].filter(Boolean).join('、') || '暂无排班';
-      return `<button type="button" class="day" data-date="${date}" aria-label="${m+1}月${n}日，${description}" aria-pressed="false"><span class="num">${n}</span>${d?.new ? `<span class="chip" title="${safe(d.new)}">新品：${safe(d.new)}</span>` : ''}${d?.event ? `<span class="chip event" title="${safe(d.event)}">活动：${safe(d.event)}</span>` : ''}${d?.slots?.length ? `<span class="chip live">${d.slots.length} 场直播</span>` : ''}<span class="mobile-day-indicators" aria-hidden="true">${d?.new ? '<i></i>' : ''}${d?.event ? '<i class="event"></i>' : ''}${d?.slots?.length ? '<i class="live"></i>' : ''}</span></button>`;
+      return `<button type="button" class="day" data-date="${date}" aria-label="${m+1}月${n}日，${description}" aria-pressed="false"><span class="num">${n}</span>${d?.new ? `<span class="chip" title="${safe(d.new)}">新品：${safe(d.new)}</span>` : ''}${d?.event ? `<span class="chip event" title="${safe(d.event)}">活动：${safe(d.event)}</span>` : ''}${d?.slots?.length ? `<span class="chip live">${d.slots.length} 场直播</span>` : ''}<span class="mobile-day-indicators" aria-hidden="true">${d?.new ? '<i class="new"></i>' : ''}${d?.event ? '<i class="event"></i>' : ''}${d?.slots?.length ? '<i class="live"></i>' : ''}</span></button>`;
     }).join('');
   $('calendar').querySelectorAll('button[data-date]').forEach(button => button.addEventListener('click', () => selectDate(button.dataset.date,true)));
   selectDate(selectedDate);
