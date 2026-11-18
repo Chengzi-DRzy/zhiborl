@@ -1,10 +1,20 @@
-import days from './november-2026.json';
+import november from './november-2026.json';
+import december from './december-2026.json';
+const days = [...november, ...december];
 const $ = id => document.getElementById(id);
 const zh = ['日','一','二','三','四','五','六'];
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const byDate = new Map(days.map(d => [d.date,d]));
 let month = new Date(2026,10,1), week = new Date(2026,10,16), selectedDate = '2026-11-17';
+const monthDays = () => days.filter(d => d.date.startsWith(`${month.getFullYear()}-${String(month.getMonth()+1).padStart(2,'0')}-`));
+function updateSummary() {
+  const current = monthDays();
+  $('heroNew').textContent = current.filter(d => d.new).length;
+  $('heroEvents').textContent = current.filter(d => d.event).length;
+  $('summaryMonth').textContent = `${month.getMonth()+1}月`;
+  if (!$('summaryPanel').hidden) openSummary($('summaryPanel').dataset.kind, true);
+}
 function slotHtml(s) { return `<div class="slot"><b>${safe(s.slot)}</b><span>主播：${safe(s.host)}</span><span>助播：${safe(s.assist)}</span></div>`; }
 function detailHtml(date) {
   const d = byDate.get(date), day = new Date(`${date}T12:00:00`);
@@ -34,6 +44,7 @@ function renderMonth() {
     }).join('');
   $('calendar').querySelectorAll('button[data-date]').forEach(button => button.addEventListener('click', () => selectDate(button.dataset.date,true)));
   selectDate(selectedDate);
+  updateSummary();
 }
 function monday(date) { const d = new Date(date); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
 function renderWeek() {
@@ -59,7 +70,41 @@ $('today').onclick = () => { month = new Date(2026,10,1); selectedDate = '2026-1
 $('weekPrev').onclick = () => { week.setDate(week.getDate()-7); renderWeek(); };
 $('weekNext').onclick = () => { week.setDate(week.getDate()+7); renderWeek(); };
 $('weekToday').onclick = () => { week = new Date(2026,10,16); renderWeek(); };
-$('heroSlots').textContent = days.reduce((n,d) => n+d.slots.length,0);
-$('heroNew').textContent = days.filter(d => d.new).length;
-$('heroEvents').textContent = days.filter(d => d.event).length;
+function openSummary(kind, refresh = false) {
+  const panel = $('summaryPanel');
+  const cards = document.querySelectorAll('[data-summary]');
+  const closing = !refresh && !panel.hidden && panel.dataset.kind === kind;
+  panel.hidden = closing;
+  cards.forEach(card => {
+    const active = !closing && card.dataset.summary === kind;
+    card.setAttribute('aria-expanded', String(active));
+    card.setAttribute('aria-pressed', String(active));
+  });
+  if (closing) return;
+  panel.dataset.kind = kind;
+  const titles = {new:'上新日期',event:'平台活动'};
+  $('summaryTitle').textContent = `${month.getMonth()+1}月${titles[kind]}`;
+  const entries = monthDays().filter(d => kind === 'new' ? d.new : d.event);
+  $('summaryList').innerHTML = entries.map(d => {
+    const day = new Date(`${d.date}T12:00:00`);
+    const label = `${day.getMonth()+1}月${day.getDate()}日 · 周${zh[day.getDay()]}`;
+    const detail = kind === 'new' ? d.new : d.event;
+    return `<button type="button" data-summary-date="${d.date}" aria-label="查看${safe(label)}详情"><strong>${safe(label)}</strong><span>${safe(detail)}</span></button>`;
+  }).join('') || '<p class="empty">暂无相关安排</p>';
+  $('summaryList').querySelectorAll('[data-summary-date]').forEach(button => button.addEventListener('click', () => {
+    const date = button.dataset.summaryDate;
+    const target = new Date(`${date}T12:00:00`);
+    month = new Date(target.getFullYear(), target.getMonth(), 1);
+    tab('month');
+    renderMonth();
+    selectDate(date);
+    $('dayDetail').scrollIntoView({behavior:'smooth',block:'start'});
+  }));
+  if (!refresh) panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+document.querySelectorAll('[data-summary]').forEach(card => card.addEventListener('click', () => openSummary(card.dataset.summary)));
+$('summaryClose').addEventListener('click', () => {
+  $('summaryPanel').hidden = true;
+  document.querySelectorAll('[data-summary]').forEach(card => { card.setAttribute('aria-expanded','false'); card.setAttribute('aria-pressed','false'); });
+});
 renderMonth();
