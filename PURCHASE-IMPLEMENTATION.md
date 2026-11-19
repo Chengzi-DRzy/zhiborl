@@ -1,5 +1,7 @@
 # 小班长内购：待启用实施边界
 
+> 2026-11-19 更新：项目已改为「Node 服务 + MongoDB」部署在 192.168.2.249（见 README）。下文中的「项目数据库」指 Comate 平台数据库，已不再使用；订单将来应存 MongoDB、经 `server/` 的接口提交。登录需要在 SSO 网关为 `https://zhibo.shueho.com:8443` 登记回调，定价表读取需要网关 client 增加该文件的读取权限——这两步都需要管理员。定价表：fileId `8ZUT2vybJxML7qcfRdhVxxpkqCFzYgtYF`，sheet 1，字段 `编码`、`销售品名`、`平台价`。
+
 当前项目数据库返回 `database is disabled`。本次只准备前端说明与金额函数，**未启用数据库、未创建订单表、未接入提交**。公开构建不得包含定价表记录、订单或收货信息。`purchaseSubmit` 必须保持禁用，直到下列条件全部经过实际验证。
 
 ## 数据与权限

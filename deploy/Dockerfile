@@ -4,16 +4,17 @@ FROM ${NODE_IMAGE} AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY index.html calendar.js purchase.js purchase-math.js vite.config.js ./
-RUN npm run build && npm prune --omit=dev
+COPY . .
+# 测试不通过就不会上线
+RUN npm test && npm run build && npm prune --omit=dev
 
 FROM ${NODE_IMAGE}
 ENV NODE_ENV=production STATIC_DIR=/app/dist/
 WORKDIR /app
 COPY --from=build /src/node_modules ./node_modules
 COPY --from=build /src/dist ./dist
-COPY package.json ./
-COPY server ./server
+COPY --from=build /src/package.json ./
+COPY --from=build /src/server ./server
 USER node
 EXPOSE 8850
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

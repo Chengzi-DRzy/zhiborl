@@ -25,6 +25,8 @@ export function loadConfig() {
     syncIntervalMinutes: number('SYNC_INTERVAL_MINUTES', 5, 1, 1440),
     encryptionKey,
     adminToken,
+    appVersion: process.env.APP_VERSION?.trim() || 'dev',
+    statusDir: process.env.STATUS_DIR?.trim() || '/app/status',
     staticDir: process.env.STATIC_DIR?.trim() || new URL('../dist/', import.meta.url).pathname,
   };
 }

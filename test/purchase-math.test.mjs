@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { amountDue, incrementalDue, priceToCents } from './purchase-math.js';
+import { amountDue, incrementalDue, priceToCents } from '../purchase-math.js';
 
 test('月度预算与十元容差', () => {
   for (const sum of [0, 19999, 20000, 20001, 21000]) assert.equal(amountDue(sum), 0);

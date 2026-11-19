@@ -112,7 +112,9 @@ $('summaryClose').addEventListener('click', () => {
 function syncNote(sync) {
   if (!sync?.lastSuccessAt) return '排班同步中，请稍后刷新';
   const time = new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(sync.lastSuccessAt));
-  return `排班更新于 ${time}`;
+  // 超过 1 小时没同步成功（授权失效、WPS 表改名等），提醒维护的同事。
+  const stale = sync.status === 'auth_required' || Date.now() - new Date(sync.lastSuccessAt) > 60 * 60_000;
+  return stale ? `⚠ 排班同步已暂停，当前是 ${time} 的数据` : `排班更新于 ${time}`;
 }
 async function load() {
   $('calendar').innerHTML = '<p class="empty">排班加载中…</p>';
@@ -123,7 +125,7 @@ async function load() {
     days = data.days ?? [];
     byDate = new Map(days.map(d => [d.date,d]));
     const note = syncNote(data.sync);
-    $('syncNote').textContent = note;
+    $('syncNote').textContent = data.version ? `${note} · 版本 ${data.version}` : note;
     $('sideSync').textContent = note;
     const t = today();
     $('topNote').textContent = `${t.toLocaleString('en-US',{month:'long'}).toUpperCase()} / ${t.getFullYear()}`;

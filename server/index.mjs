@@ -80,9 +80,13 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && pathname === '/api/schedule') {
       const months = await store.months.find({}, { projection: { days: 1, syncedAt: 1 } }).sort({ _id: 1 }).toArray();
       const days = months.flatMap(month => month.days.map(({ recordId, ...day }) => day));
-      return send(res, 200, { months: months.map(m => m._id), days, sync: await publicSyncState() });
+      return send(res, 200, { months: months.map(m => m._id), days, sync: await publicSyncState(), version: config.appVersion });
     }
     if (req.method === 'GET' && pathname === '/api/sync/status') return send(res, 200, await publicSyncState());
+    if (req.method === 'GET' && pathname === '/api/deploy/status') {
+      const status = await readFile(join(config.statusDir, 'deploy-status.json'), 'utf8').then(JSON.parse).catch(() => ({}));
+      return send(res, 200, { runningVersion: config.appVersion, ...status });
+    }
     if (pathname.startsWith('/api/admin/')) {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
       if (req.method === 'POST' && pathname === '/api/admin/wps-authorization') {

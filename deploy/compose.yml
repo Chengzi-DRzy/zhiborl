@@ -1,5 +1,6 @@
 # 生产：Windows 192.168.2.249 上 WSL（SHUEHO-PROD）里的 Docker，目录 /mnt/d/shueho/zhiborl。
 # app：网页 + /api + 每 5 分钟从 WPS 多维表同步排班；mongo：本项目专属 MongoDB，不对外开端口。
+# 这个文件只在服务器上生效、不会随 GitHub 自动更新；改它需要有服务器权限的人手工操作。
 name: shueho-zhiborl
 
 services:
@@ -12,6 +13,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8850
+      APP_VERSION: ${APP_VERSION}
       MONGO_URL: mongodb://zhiborl:${MONGO_APP_PASSWORD}@mongo:27017/zhiborl?authSource=zhiborl
       WPS_GATEWAY_BASE_URL: ${WPS_GATEWAY_BASE_URL:?}
       WPS_GATEWAY_CLIENT_SERVICE: ${WPS_GATEWAY_CLIENT_SERVICE:?}
@@ -22,6 +24,9 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN:?}
     ports:
       - "8850:8850"
+    volumes:
+      # 自动上线脚本写的状态，网页 /api/deploy/status 只读展示
+      - ./status:/app/status:ro
     depends_on:
       mongo:
         condition: service_healthy
@@ -45,7 +50,7 @@ services:
       MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?在 .env 里设置 MONGO_APP_PASSWORD}
     volumes:
       - mongo-data:/data/db
-      - ./source/deploy/mongo-init.js:/docker-entrypoint-initdb.d/10-app-user.js:ro
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/10-app-user.js:ro
     mem_limit: 768m
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
