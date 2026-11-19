@@ -73,9 +73,9 @@ MongoDB 数据库（同一台服务器，库名 zhiborl，表 schedule_months）
 
 ## 6. 授权：同步为什么会停、怎么恢复
 
-WPS 不允许程序自己读这份排班表，所以同步用的是「某位同事授权过的身份」（目前是黄浩航），网关会自动续期，平时不用管。
+WPS 不允许程序自己读这份排班表，所以同步用的是「某位同事授权过的身份」：授权时通过公司网关（标准 OIDC 登录）拿到一张可自动续期的离线凭证，服务器加密保存，每次同步自动换新，平时不用管。
 
-**网页底部出现「⚠ 排班同步已暂停」** 或 `/api/sync/status` 里 `status` 是 `auth_required`，说明授权失效了（授权人退出了 WPS 登录、离职、或被移出了排班表权限）。恢复方法：
+**网页底部出现「⚠ 排班同步已暂停」** 或 `/api/sync/status` 里 `status` 是 `auth_required`，说明授权失效了（离线授权被撤销、授权人离职、或被移出了排班表权限）。恢复方法：
 
 1. 找一位**对排班表有查看权限**的同事（建议就是你自己，以后由你负责），用他的电脑，连着公司网络（要能打开 http://192.168.2.249:8850）。
 2. 准备好「管理密钥」ADMIN_TOKEN（向管理员要，**不要发到群里、不要写进代码**）。
@@ -84,7 +84,7 @@ WPS 不允许程序自己读这份排班表，所以同步用的是「某位同�
    npm install
    $env:ZHIBORL_ADMIN_TOKEN="管理密钥"; npm run authorize
    ```
-4. 浏览器会打开 WPS 登录，登录并同意后页面显示「授权完成」，终端会列出同步到的月份。
+4. 浏览器会打开公司网关的登录页（WPS 登录），登录并同意后页面显示「授权完成」，终端会列出同步到的月份。
 
 `status` 是 `partial` 表示有个别月份没读成功，`issues` 里会写哪张表、什么原因（例如 `DUPLICATE_DATE` 日期重复、`MISSING_DATE_FIELD` 没有日期字段），去 WPS 表里改正即可，5 分钟后自动恢复。
 
@@ -102,8 +102,8 @@ WPS 不允许程序自己读这份排班表，所以同步用的是「某位同�
 - 文件：`compose.yml`、`.env`（全部密钥，权限已收紧）、`mongo-init.js`、`auto-deploy.sh`、`releases/`（最近 5 个版本）、`source`（指向当前版本）、`status/`（上线状态和构建日志）。
 - 计划任务：`SHUEHO-Zhiborl-Production`（开机恢复端口转发并启动容器）、`SHUEHO-Zhiborl-AutoDeploy`（每 5 分钟检查 GitHub 并自动上线）。防火墙规则 `SHUEHO Zhiborl HTTP`。
 - 外网入口：Mac Studio（192.168.3.30）上的 `shueho-edge` nginx，配置 `zhibo.shueho.com.conf`，转发到 192.168.2.249:8850，并屏蔽 `/api/admin/`。
-- WPS 读取：网关 https://sso.shueho.com:8443 的 client `shueho-zhiborl`（只读 `kso.file.read`、`kso.dbsheet.read`，回调 `http://127.0.0.1:4931/wps/callback` 仅供授权脚本）。排班表 fileId `r8T2ifj8N1MRx9gPKdHmxx7Nv8C3NhNvY`。
+- WPS 读取：网关 https://sso.shueho.com:8443 的 client `shueho-zhiborl`（OIDC 授权码 + PKCE + `offline_access`，只读 `kso.file.read`、`kso.dbsheet.read`；回调 `http://127.0.0.1:4931/wps/callback` 仅供授权脚本；服务器只加密保存可轮换的 refresh token，存在 MongoDB `sync_state`）。排班表 fileId `r8T2ifj8N1MRx9gPKdHmxx7Nv8C3NhNvY`。
 - 管理接口（只能内网直连调用）：`POST /api/admin/sync` 立即同步、`POST /api/admin/wps-authorization` 保存授权，都需要 `Authorization: Bearer <ADMIN_TOKEN>`。
 - 代码仓库换地址时，改 `.env` 里的 `GITHUB_REPO`（默认 `Chengzi-DRzy/zhiborl`），自动上线就会跟着新仓库走。
 - 数据都来自 WPS，MongoDB 丢了也能重新同步回来；只有授权需要重新做一次。
-- 注意：网关以后若从 tokenEnvelope 升级为 OIDC，本项目的同步要跟着改（已有分支 `codex/oidc-migration` 做了这部分），网关升级时由做升级的人一起处理，否则同步会变成 `auth_required`。
+- 同步依赖网关的 OIDC 接口（`/oauth/authorize`、`/oauth/token`、`/.well-known/jwks.json`）。网关升级或换域名后，如果同步变成 `auth_required`，按第 6 节重新授权一次即可。

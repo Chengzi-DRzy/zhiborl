@@ -7,30 +7,30 @@ const MAX_PAGES = 20;
 const KEEP_RUNS = 500;
 
 // WPS 读取 → 校验 → 按月整份写入 MongoDB。任何一个月读失败都保留该月旧数据。
-export function createSyncer({ store, gateway, config, log = console }) {
+export function createSyncer({ store, gateway, oidc, config, log = console }) {
   let running = null;
 
-  async function loadEnvelope() {
+  async function loadRefresh() {
     const state = await store.state.findOne({ _id: STATE_ID });
-    if (!state?.envelope) return null;
-    return { state, envelope: decrypt(config.encryptionKey, state.envelope) };
+    if (!state?.oidcGrant) return null;
+    return { state, refresh: decrypt(config.encryptionKey, state.oidcGrant) };
   }
 
-  async function saveEnvelope(envelope, extra = {}) {
+  async function saveRefresh(refresh, extra = {}) {
     await store.state.updateOne(
       { _id: STATE_ID },
-      { $set: { envelope: encrypt(config.encryptionKey, envelope), ...extra } },
+      { $set: { oidcGrant: encrypt(config.encryptionKey, refresh), ...extra } },
       { upsert: true },
     );
   }
 
-  async function readAllRecords(envelope, sheetId, fields) {
+  async function readAllRecords(accessToken, sheetId, fields) {
     const records = [];
     const ids = new Set();
     const tokens = new Set();
     let pageToken;
     for (let page = 0; page < MAX_PAGES; page += 1) {
-      const data = await gateway.readRecords(envelope, {
+      const data = await gateway.readRecords(accessToken, {
         fileId: config.scheduleFileId, sheetId, fields, pageSize: 1000, preferId: false, textValue: 'text',
         includeAttachmentUrls: false, ...(pageToken ? { pageToken } : {}),
       });
@@ -69,17 +69,13 @@ export function createSyncer({ store, gateway, config, log = console }) {
       return run;
     };
 
-    const loaded = await loadEnvelope();
+    const loaded = await loadRefresh();
     if (!loaded) return finish('auth_required', Object.assign(new Error('尚未授权读取 WPS 排班表'), { code: 'NOT_AUTHORIZED' }));
 
-    let envelope = loaded.envelope;
     try {
-      const refreshed = await gateway.refreshEnvelope(envelope);
-      if (refreshed?.tokenEnvelope) {
-        envelope = refreshed.tokenEnvelope;
-        await saveEnvelope(envelope, { accessExpiresAt: refreshed.accessExpiresAt ?? null, refreshExpiresAt: refreshed.refreshExpiresAt ?? null });
-      }
-      const schema = await gateway.dbsheetSchema(envelope, config.scheduleFileId);
+      const { access_token: accessToken, refresh_token: refresh } = await oidc.refresh(loaded.refresh);
+      await saveRefresh(refresh);
+      const schema = await gateway.dbsheetSchema(accessToken, config.scheduleFileId);
       const sheets = (schema?.sheets ?? [])
         .map(sheet => ({ id: Number(sheet.id), name: sheet.name, monthNumber: sheetMonthNumber(sheet.name), fieldNames: new Set((sheet.fields ?? []).map(f => f.name)) }))
         .filter(sheet => sheet.monthNumber && Number.isInteger(sheet.id));
@@ -90,7 +86,7 @@ export function createSyncer({ store, gateway, config, log = console }) {
         const fields = READ_FIELD_NAMES.filter(name => sheet.fieldNames.has(name));
         try {
           if (!fields.includes('日期')) throw Object.assign(new Error('缺少「日期」字段'), { code: 'MISSING_DATE_FIELD' });
-          const records = await readAllRecords(envelope, sheet.id, fields);
+          const records = await readAllRecords(accessToken, sheet.id, fields);
           const parsed = parseMonthSheet(records, sheet.monthNumber);
           if (parsedByMonth.has(parsed.month)) throw Object.assign(new Error(`${parsed.month} 出现在多个工作表`), { code: 'DUPLICATE_MONTH' });
           parsedByMonth.set(parsed.month, { ...parsed, sheet });
@@ -116,7 +112,7 @@ export function createSyncer({ store, gateway, config, log = console }) {
       }
       return finish(!parsedByMonth.size ? 'error' : run.issues.length ? 'partial' : 'ok');
     } catch (error) {
-      if (error instanceof GatewayError && error.authRequired) return finish('auth_required', error);
+      if (error.authRequired) return finish('auth_required', error);
       return finish('error', error);
     }
   }
@@ -127,11 +123,12 @@ export function createSyncer({ store, gateway, config, log = console }) {
       running ??= syncOnce(trigger).finally(() => { running = null; });
       return running;
     },
-    async authorize(tokenEnvelope) {
-      const me = await gateway.me(tokenEnvelope);
-      await gateway.dbsheetSchema(tokenEnvelope, config.scheduleFileId);
+    async authorize({ access_token: accessToken, refresh_token: refresh }) {
+      if (running) await running;
+      const me = await gateway.me(accessToken);
+      await gateway.dbsheetSchema(accessToken, config.scheduleFileId);
       const user = me?.user ?? {};
-      await saveEnvelope(tokenEnvelope, { authorizedAt: new Date(), authorizedUser: { id: user.id ?? null, name: user.displayName ?? null } });
+      await saveRefresh(refresh, { authorizedAt: new Date(), authorizedUser: { id: user.id ?? null, name: user.displayName ?? null } });
       return { userName: user.displayName ?? null };
     },
   };

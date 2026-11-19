@@ -5,6 +5,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { loadConfig } from './config.mjs';
 import { connectDb } from './db.mjs';
 import { createGateway, GatewayError } from './gateway.mjs';
+import { createOidc } from './oidc.mjs';
 import { createSyncer } from './sync.mjs';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8', '.woff2': 'font/woff2' };
@@ -12,7 +13,8 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const config = loadConfig();
 const store = await connectDb(config);
 const gateway = createGateway({ baseUrl: config.gatewayBaseUrl, clientService: config.gatewayClientService, clientSecret: config.gatewayClientSecret });
-const syncer = createSyncer({ store, gateway, config });
+const oidc = createOidc({ baseUrl: config.gatewayBaseUrl, clientService: config.gatewayClientService, clientSecret: config.gatewayClientSecret });
+const syncer = createSyncer({ store, gateway, oidc, config });
 
 const send = (res, status, body, headers = {}) => {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
@@ -38,10 +40,10 @@ function isAdmin(req) {
 }
 
 async function publicSyncState() {
-  const state = await store.state.findOne({ _id: 'wps' }, { projection: { envelope: 0 } });
+  const state = await store.state.findOne({ _id: 'wps' }, { projection: { envelope: 0, oidcGrant: 0 } });
   return {
     status: state?.status ?? 'pending',
-    authorized: Boolean(state?.authorizedAt),
+    authorized: Boolean(state?.authorizedAt && state?.status !== 'auth_required'),
     lastRunAt: state?.lastRunAt ?? null,
     lastSuccessAt: state?.lastSuccessAt ?? null,
     lastErrorCode: state?.lastError?.code ?? null,
@@ -90,9 +92,10 @@ const server = createServer(async (req, res) => {
     if (pathname.startsWith('/api/admin/')) {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
       if (req.method === 'POST' && pathname === '/api/admin/wps-authorization') {
-        const { tokenEnvelope } = await readJson(req);
-        if (typeof tokenEnvelope !== 'string' || tokenEnvelope.length < 20 || tokenEnvelope.length > 16_384) return send(res, 400, { error: 'invalid_envelope' });
-        const result = await syncer.authorize(tokenEnvelope);
+        const { code, verifier, nonce, redirectUri } = await readJson(req);
+        if (![code, verifier, nonce].every(v => typeof v === 'string' && v.length >= 16 && v.length <= 2048) ||
+            redirectUri !== 'http://127.0.0.1:4931/wps/callback') return send(res, 400, { error: 'invalid_oidc_callback' });
+        const result = await syncer.authorize(await oidc.exchange({ code, verifier, nonce, redirectUri }));
         const run = await syncer.run('authorization');
         return send(res, 200, { authorizedUser: result.userName, sync: { status: run.status, months: run.months, issues: run.issues, error: run.error ?? null } });
       }
