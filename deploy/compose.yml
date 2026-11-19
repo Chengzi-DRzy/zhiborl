@@ -1,0 +1,58 @@
+# 生产：Windows 192.168.2.249 上 WSL（SHUEHO-PROD）里的 Docker，目录 /mnt/d/shueho/zhiborl。
+# app：网页 + /api + 每 5 分钟从 WPS 多维表同步排班；mongo：本项目专属 MongoDB，不对外开端口。
+name: shueho-zhiborl
+
+services:
+  app:
+    image: shueho-zhiborl:${APP_VERSION:?在 .env 里设置 APP_VERSION}
+    build:
+      context: ./source
+      dockerfile: deploy/Dockerfile
+    container_name: shueho-zhiborl-app
+    restart: unless-stopped
+    environment:
+      PORT: 8850
+      MONGO_URL: mongodb://zhiborl:${MONGO_APP_PASSWORD}@mongo:27017/zhiborl?authSource=zhiborl
+      WPS_GATEWAY_BASE_URL: ${WPS_GATEWAY_BASE_URL:?}
+      WPS_GATEWAY_CLIENT_SERVICE: ${WPS_GATEWAY_CLIENT_SERVICE:?}
+      WPS_GATEWAY_CLIENT_SECRET: ${WPS_GATEWAY_CLIENT_SECRET:?}
+      WPS_SCHEDULE_FILE_ID: ${WPS_SCHEDULE_FILE_ID:?}
+      SYNC_INTERVAL_MINUTES: ${SYNC_INTERVAL_MINUTES:-5}
+      ENVELOPE_ENCRYPTION_KEY: ${ENVELOPE_ENCRYPTION_KEY:?}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?}
+    ports:
+      - "8850:8850"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    mem_limit: 256m
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  mongo:
+    image: docker.1ms.run/library/mongo:8.0
+    container_name: shueho-zhiborl-mongo
+    restart: unless-stopped
+    command: ["--wiredTigerCacheSizeGB", "0.25"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?在 .env 里设置 MONGO_ROOT_PASSWORD}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?在 .env 里设置 MONGO_APP_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+      - ./source/deploy/mongo-init.js:/docker-entrypoint-initdb.d/10-app-user.js:ro
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongo-data:

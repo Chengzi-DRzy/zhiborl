@@ -36,3 +36,7 @@ temp/
 # ── CloudSync meta ──
 .cloudsync_meta.json
 .cloudsync_zip_meta.json
+
+# ── Deploy secrets ──
+deploy/.env
+.playwright-mcp/

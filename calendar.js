@@ -1,12 +1,14 @@
-import november from './november-2026.json';
-import december from './december-2026.json';
-const days = [...november, ...december];
+// 排班由服务器从 WPS 多维表自动同步到 MongoDB，页面通过 /api/schedule 读取。
+let days = [];
 const $ = id => document.getElementById(id);
 const zh = ['日','一','二','三','四','五','六'];
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const byDate = new Map(days.map(d => [d.date,d]));
-let month = new Date(2026,10,1), week = new Date(2026,10,16), selectedDate = '2026-11-17';
+let byDate = new Map();
+const todayText = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const today = () => new Date(`${todayText()}T12:00:00`);
+const firstOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1);
+let month = firstOfMonth(today()), week = today(), selectedDate = todayText();
 const monthDays = () => days.filter(d => d.date.startsWith(`${month.getFullYear()}-${String(month.getMonth()+1).padStart(2,'0')}-`));
 function updateSummary() {
   const current = monthDays();
@@ -66,10 +68,10 @@ function tab(name) {
 document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click',() => tab(b.dataset.tab)));
 $('prev').onclick = () => { month.setMonth(month.getMonth()-1); renderMonth(); };
 $('next').onclick = () => { month.setMonth(month.getMonth()+1); renderMonth(); };
-$('today').onclick = () => { month = new Date(2026,10,1); selectedDate = '2026-11-17'; renderMonth(); };
+$('today').onclick = () => { month = firstOfMonth(today()); selectedDate = todayText(); renderMonth(); };
 $('weekPrev').onclick = () => { week.setDate(week.getDate()-7); renderWeek(); };
 $('weekNext').onclick = () => { week.setDate(week.getDate()+7); renderWeek(); };
-$('weekToday').onclick = () => { week = new Date(2026,10,16); renderWeek(); };
+$('weekToday').onclick = () => { week = today(); renderWeek(); };
 function openSummary(kind, refresh = false) {
   const panel = $('summaryPanel');
   const cards = document.querySelectorAll('[data-summary]');
@@ -107,4 +109,28 @@ $('summaryClose').addEventListener('click', () => {
   $('summaryPanel').hidden = true;
   document.querySelectorAll('[data-summary]').forEach(card => { card.setAttribute('aria-expanded','false'); card.setAttribute('aria-pressed','false'); });
 });
-renderMonth();
+function syncNote(sync) {
+  if (!sync?.lastSuccessAt) return '排班同步中，请稍后刷新';
+  const time = new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(sync.lastSuccessAt));
+  return `排班更新于 ${time}`;
+}
+async function load() {
+  $('calendar').innerHTML = '<p class="empty">排班加载中…</p>';
+  try {
+    const response = await fetch('api/schedule', {cache:'no-store'});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    days = data.days ?? [];
+    byDate = new Map(days.map(d => [d.date,d]));
+    const note = syncNote(data.sync);
+    $('syncNote').textContent = note;
+    $('sideSync').textContent = note;
+    const t = today();
+    $('topNote').textContent = `${t.toLocaleString('en-US',{month:'long'}).toUpperCase()} / ${t.getFullYear()}`;
+    renderMonth();
+  } catch (error) {
+    console.error('排班读取失败', error);
+    $('calendar').innerHTML = '<p class="empty">排班暂时读取不到，请稍后刷新。</p>';
+  }
+}
+load();

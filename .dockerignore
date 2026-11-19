@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+*.png
+*.json
+!package.json
+!package-lock.json
+.capabilities
+template
