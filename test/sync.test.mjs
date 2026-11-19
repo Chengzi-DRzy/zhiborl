@@ -27,7 +27,7 @@ function setup(gatewayOverrides = {}) {
   const store = { months: fakeCollection(), state: fakeCollection(), runs: fakeCollection() };
   const calls = [];
   const gateway = {
-    refreshEnvelope: async env => ({ tokenEnvelope: `${env}+r`, accessExpiresAt: 'a', refreshExpiresAt: 'b' }),
+
     me: async () => ({ user: { id: 'u1', displayName: '橙子' } }),
     dbsheetSchema: async () => ({ sheets: [
       { id: 61, name: '11月排班表', fields: [{ name: '日期' }, { name: '抖音主号-早' }, { name: '抖音上新' }, { name: '负责主播' }] },
@@ -41,7 +41,7 @@ function setup(gatewayOverrides = {}) {
     },
     ...gatewayOverrides,
   };
-  return { store, calls, syncer: createSyncer({ store, gateway, config, log: quiet }) };
+  return { store, calls, syncer: createSyncer({ store, gateway, oidc: { refresh: gatewayOverrides.refresh || (async token => ({ refresh_token: token + '+r', access_token: 'new-access' })) }, config, log: quiet }) };
 }
 
 test('未授权时不读 WPS，状态为 auth_required', async () => {
@@ -53,13 +53,13 @@ test('未授权时不读 WPS，状态为 auth_required', async () => {
 
 test('授权后按月写入，只读需要的字段，并保存刷新后的授权', async () => {
   const { syncer, store, calls } = setup();
-  assert.deepEqual(await syncer.authorize('env-0'), { userName: '橙子' });
+  assert.deepEqual(await syncer.authorize({ access_token: 'access', refresh_token: 'env-0' }), { userName: '橙子' });
   const run = await syncer.run();
   assert.equal(run.status, 'ok');
   assert.deepEqual([...store.months.docs.keys()].sort(), ['2026-11', '2026-12']);
   assert.deepEqual(store.months.docs.get('2026-11').days[0].slots, [{ slot: '早场', host: '小朱', assist: '贝贝' }]);
   assert.deepEqual(calls[0].fields, ['日期', '抖音主号-早', '抖音上新']);
-  assert.equal(decrypt(config.encryptionKey, store.state.docs.get('wps').envelope), 'env-0+r');
+  assert.equal(decrypt(config.encryptionKey, store.state.docs.get('wps').oidcGrant), 'env-0+r');
 });
 
 test('单月失败保留旧数据并标记 partial', async () => {
@@ -70,7 +70,7 @@ test('单月失败保留旧数据并标记 partial', async () => {
     },
   });
   store.months.docs.set('2026-12', { _id: '2026-12', days: [{ date: '2026-12-01' }] });
-  await syncer.authorize('env-0');
+  await syncer.authorize({ access_token: 'access', refresh_token: 'env-0' });
   const run = await syncer.run();
   assert.equal(run.status, 'partial');
   assert.equal(store.months.docs.get('2026-12').days.length, 1);
@@ -78,8 +78,8 @@ test('单月失败保留旧数据并标记 partial', async () => {
 });
 
 test('授权失效时停止并要求重新授权', async () => {
-  const { syncer, store } = setup({ refreshEnvelope: async () => { throw new GatewayError('AUTH_TOKEN_INVALID', 'expired', { status: 401 }); } });
-  store.state.docs.set('wps', { _id: 'wps', envelope: encrypt(config.encryptionKey, 'env-0') });
+  const { syncer, store } = setup({ refresh: async () => { throw new GatewayError('AUTH_TOKEN_INVALID', 'expired', { status: 401 }); } });
+  store.state.docs.set('wps', { _id: 'wps', oidcGrant: encrypt(config.encryptionKey, 'env-0') });
   const run = await syncer.run();
   assert.equal(run.status, 'auth_required');
   assert.equal(store.state.docs.get('wps').status, 'auth_required');
@@ -89,7 +89,7 @@ test('分页游标重复时拒绝该月', async () => {
   const { syncer } = setup({
     readRecords: async (env, params) => ({ fileId: FILE, sheetId: params.sheetId, records: [{ id: `r${params.pageToken ?? 0}`, fields: { '日期': '2026/11/02' } }], nextPageToken: 'same' }),
   });
-  await syncer.authorize('env-0');
+  await syncer.authorize({ access_token: 'access', refresh_token: 'env-0' });
   const run = await syncer.run();
   assert.equal(run.status, 'error');
   assert.match(run.issues[0].message, /分页/);

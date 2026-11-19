@@ -1,4 +1,4 @@
-// 通过 shueho-sso-gateway 读取 WPS。只用授权人的 tokenEnvelope 读，网关负责刷新 WPS token。
+// 通过 shueho-sso-gateway 读取 WPS。用授权人的 OIDC Bearer 读取，网关负责刷新 WPS token。
 export class GatewayError extends Error {
   constructor(code, message, { status, requestId } = {}) {
     super(message);
@@ -11,14 +11,14 @@ export class GatewayError extends Error {
   }
 }
 
-export function createGateway({ baseUrl, clientService, clientSecret, fetchImpl = fetch, timeoutMs = 30_000 }) {
-  async function post(route, body) {
+export function createGateway({ baseUrl, fetchImpl = fetch, timeoutMs = 30_000 }) {
+  async function post(route, accessToken, body) {
     let response;
     try {
       response = await fetchImpl(`${baseUrl}${route}`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ clientService, clientSecret, ...body }),
+        redirect: 'error', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + accessToken },
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (error) {
@@ -37,9 +37,8 @@ export function createGateway({ baseUrl, clientService, clientSecret, fetchImpl 
   }
 
   return {
-    refreshEnvelope: tokenEnvelope => post('/wps/token/refresh', { tokenEnvelope }),
-    me: tokenEnvelope => post('/wps/api/org/me', { tokenEnvelope }),
-    dbsheetSchema: (tokenEnvelope, fileId) => post('/wps/api/docs/dbsheet/schema', { tokenEnvelope, fileId }),
-    readRecords: (tokenEnvelope, params) => post('/wps/api/docs/table/read', { tokenEnvelope, documentType: 'dbsheet', ...params }),
+    me: token => post('/wps/api/org/me', token, {}),
+    dbsheetSchema: (token, fileId) => post('/wps/api/docs/dbsheet/schema', token, { fileId }),
+    readRecords: (token, params) => post('/wps/api/docs/table/read', token, { documentType: 'dbsheet', ...params }),
   };
 }

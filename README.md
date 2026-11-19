@@ -8,13 +8,13 @@
 2. **同步**：服务器每 5 分钟经 `shueho-sso-gateway`（client `shueho-zhiborl`，只读 scope）用授权人的身份读取，校验后按月整份写入 MongoDB `schedule_months`。某个月读取或校验失败时保留该月旧数据；记录在 `sync_runs`，状态见 `GET /api/sync/status`。
 3. **展示**：网页读 `GET /api/schedule`。
 
-WPS 不对应用开放这份文件（应用身份读取返回 403），所以需要一位**对排班表有查看权限**的同事授权一次；网关会自动续期。若状态变成 `auth_required`（授权人退出登录、离职或失去文件权限），重新授权即可：
+WPS 不对应用开放这份文件（应用身份读取返回 403），所以需要一位**对排班表有查看权限**的同事授权一次；网关会自动续期。若状态变成 `auth_required`（离线授权被撤销、授权人离职或失去文件权限），重新授权即可：
 
 ```bash
 ZHIBORL_ADMIN_TOKEN=<服务器 .env 里的 ADMIN_TOKEN> npm run authorize
 ```
 
-脚本会打开浏览器走 WPS 登录，授权回传到本机 `127.0.0.1:4931` 后转交服务器（加密保存），并立即同步一次。手动立即同步：`POST /api/admin/sync`（Bearer ADMIN_TOKEN）。
+脚本会打开浏览器走 WPS 登录，通过标准 OIDC 和 PKCE 将一次性授权码回传到本机 `127.0.0.1:4931`，服务器校验 ID token，只加密保存可轮换的离线刷新凭证，并立即同步一次。手动立即同步：`POST /api/admin/sync`（Bearer ADMIN_TOKEN）。
 
 ## 部署（192.168.2.249 / WSL SHUEHO-PROD）
 

@@ -2,38 +2,41 @@
 // 用法：ZHIBORL_ADMIN_TOKEN=... npm run authorize
 // 浏览器会打开 WPS 登录；登录完成后网关把授权回传到本机 127.0.0.1，脚本再转交给服务器。
 import { createServer } from 'node:http';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 
 const serverUrl = (process.env.ZHIBORL_URL ?? 'http://192.168.2.249:8850').replace(/\/+$/, '');
 const adminToken = process.env.ZHIBORL_ADMIN_TOKEN;
 const gatewayUrl = (process.env.WPS_GATEWAY_BASE_URL ?? 'https://sso.shueho.com:8443').replace(/\/+$/, '');
 const clientService = process.env.WPS_GATEWAY_CLIENT_SERVICE ?? 'shueho-zhiborl';
-const port = Number(process.env.AUTHORIZE_PORT ?? 4931);
+const port = 4931;
 if (!adminToken) { console.error('请设置 ZHIBORL_ADMIN_TOKEN（服务器 .env 里的 ADMIN_TOKEN）'); process.exit(1); }
 
 const state = randomBytes(24).toString('base64url');
 const redirectUri = `http://127.0.0.1:${port}/wps/callback`;
-const loginUrl = `${gatewayUrl}/wps/sso/login?${new URLSearchParams({ client_service: clientService, redirect_uri: redirectUri, state, response_mode: 'form_post' })}`;
+const verifier = randomBytes(32).toString('base64url');
+const nonce = randomBytes(24).toString('base64url');
+const challenge = createHash('sha256').update(verifier).digest('base64url');
+const loginUrl = `${gatewayUrl}/oauth/authorize?${new URLSearchParams({ client_id: clientService, redirect_uri: redirectUri, state, nonce, response_type: 'code', scope: 'openid profile offline_access', code_challenge_method: 'S256', code_challenge: challenge })}`;
 
 const page = (title, body) => `<!doctype html><meta charset="utf-8"><title>${title}</title><body style="font:16px system-ui;padding:40px"><h2>${title}</h2><p>${body}</p></body>`;
 const escape = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const server = createServer(async (req, res) => {
-  if (req.method !== 'POST' || !req.url.startsWith('/wps/callback')) { res.writeHead(404).end(); return; }
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const form = new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
+  const url = new URL(req.url, redirectUri);
+  if (req.method !== 'GET' || url.pathname !== '/wps/callback') { res.writeHead(404).end(); return; }
+  const form = url.searchParams;
+  if (form.get('state') !== state) { res.writeHead(400).end('invalid state'); return; }
   let ok = false;
   let message;
-  if (form.get('state') !== state || !form.get('tokenEnvelope')) {
+  if (form.get('iss') !== gatewayUrl || !form.get('code')) {
     message = '回传的 state 不匹配或没有授权，请重新运行脚本。';
   } else {
     try {
       const response = await fetch(`${serverUrl}/api/admin/wps-authorization`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${adminToken}` },
-        body: JSON.stringify({ tokenEnvelope: form.get('tokenEnvelope') }),
+        body: JSON.stringify({ code: form.get('code'), nonce, verifier, redirectUri }),
       });
       const result = await response.json().catch(() => ({}));
       ok = response.ok;
@@ -45,7 +48,7 @@ const server = createServer(async (req, res) => {
     }
   }
   console[ok ? 'log' : 'error'](message);
-  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(page(ok ? '授权完成' : '授权失败', escape(message)));
+  res.writeHead(200, { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'content-type': 'text/html; charset=utf-8' }).end(page(ok ? '授权完成' : '授权失败', escape(message)));
   server.close();
   process.exitCode = ok ? 0 : 1;
 });
