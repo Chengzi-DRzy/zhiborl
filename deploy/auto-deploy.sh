@@ -50,7 +50,7 @@ TAG=${SHA:0:7}
 REL=$BASE/releases/$TAG
 BUILDLOG=$STATUS_DIR/build-$TAG.log
 log "发现新提交 $SHA，开始上线"
-fail() { log "上线失败 $TAG：$1"; write_status failed "$SHA" "$1" "$BUILDLOG"; exit 1; }
+fail() { rm -rf "$REL.tmp"; log "上线失败 $TAG：$1"; write_status failed "$SHA" "$1" "$BUILDLOG"; exit 1; }
 
 rm -rf "$REL.tmp" && mkdir -p "$REL.tmp"
 curl -fsSL -m 300 "https://codeload.github.com/$REPO/tar.gz/$SHA" | tar -xz -C "$REL.tmp" --strip-components=1 || fail "下载代码失败"
