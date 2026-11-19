@@ -35,7 +35,7 @@ services:
       - ALL
 
   mongo:
-    image: docker.1ms.run/library/mongo:8.0
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/mongo:8.0
     container_name: shueho-zhiborl-mongo
     restart: unless-stopped
     command: ["--wiredTigerCacheSizeGB", "0.25"]
