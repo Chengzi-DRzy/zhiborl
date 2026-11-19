@@ -106,3 +106,4 @@ WPS 不允许程序自己读这份排班表，所以同步用的是「某位同�
 - 管理接口（只能内网直连调用）：`POST /api/admin/sync` 立即同步、`POST /api/admin/wps-authorization` 保存授权，都需要 `Authorization: Bearer <ADMIN_TOKEN>`。
 - 代码仓库换地址时，改 `.env` 里的 `GITHUB_REPO`（默认 `Chengzi-DRzy/zhiborl`），自动上线就会跟着新仓库走。
 - 数据都来自 WPS，MongoDB 丢了也能重新同步回来；只有授权需要重新做一次。
+- 注意：网关以后若从 tokenEnvelope 升级为 OIDC，本项目的同步要跟着改（已有分支 `codex/oidc-migration` 做了这部分），网关升级时由做升级的人一起处理，否则同步会变成 `auth_required`。
